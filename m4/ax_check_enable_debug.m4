@@ -49,6 +49,8 @@ AC_DEFUN([AX_CHECK_ENABLE_DEBUG],[
     AC_BEFORE([$0],[AC_PROG_F77])dnl
     AC_BEFORE([$0],[AC_PROG_FC])dnl
 
+    AX_REQUIRE_DEFINED([AX_CHECK_COMPILE_FLAG])
+
     AC_MSG_CHECKING(whether to enable debugging)
 
     ax_enable_debug_default=m4_tolower(m4_normalize(ifelse([$1],,[no],[$1])))
@@ -64,6 +66,15 @@ AC_DEFUN([AX_CHECK_ENABLE_DEBUG],[
 	[AS_HELP_STRING([--enable-debug=]@<:@yes/info/profile/no@:>@,[compile with debugging])],
 	[],enable_debug=$ax_enable_debug_default)
 
+    # Check whether -fsanitize=address is supported
+    AX_CHECK_COMPILE_FLAG([-fsanitize=address],[
+        sanitize_cflags="-fsanitize=address"
+        sanitize_ldflags="-fasan"
+    ],[
+        sanitize_cflags=""
+        sanitize_ldflags=""
+    ])
+
     # empty mean debug yes
     AS_IF([test "x$enable_debug" = "x"],
       [enable_debug="yes"])
@@ -72,11 +83,12 @@ AC_DEFUN([AX_CHECK_ENABLE_DEBUG],[
     AS_CASE([$enable_debug],
       [yes],[
 	AC_MSG_RESULT(yes)
-	CFLAGS="${CFLAGS} -g -O0"
-	CXXFLAGS="${CXXFLAGS} -g -O0"
+	CFLAGS="${CFLAGS} -g -O0 ${sanitize_cflags}"
+	CXXFLAGS="${CXXFLAGS} -g -O0 ${sanitize_cflags}"
 	FFLAGS="${FFLAGS} -g -O0"
 	FCFLAGS="${FCFLAGS} -g -O0"
 	OBJCFLAGS="${OBJCFLAGS} -g -O0"
+	LDFLAGS="${LDFLAGS} ${sanitize_ldflags}"
       ],
       [info],[
 	AC_MSG_RESULT(info)
@@ -88,12 +100,12 @@ AC_DEFUN([AX_CHECK_ENABLE_DEBUG],[
       ],
       [profile],[
 	AC_MSG_RESULT(profile)
-	CFLAGS="${CFLAGS} -g -pg"
-	CXXFLAGS="${CXXFLAGS} -g -pg"
+	CFLAGS="${CFLAGS} -g -pg ${sanitize_cflags}"
+	CXXFLAGS="${CXXFLAGS} -g -pg ${sanitize_cflags}"
 	FFLAGS="${FFLAGS} -g -pg"
 	FCFLAGS="${FCFLAGS} -g -pg"
 	OBJCFLAGS="${OBJCFLAGS} -g -pg"
-	LDFLAGS="${LDFLAGS} -pg"
+	LDFLAGS="${LDFLAGS} -pg ${sanitize_ldflags}"
       ],
       [
 	AC_MSG_RESULT(no)
